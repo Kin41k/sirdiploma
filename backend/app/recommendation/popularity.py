@@ -13,10 +13,20 @@ def compute_popularity_score(vote_average: float, vote_count: int, popularity: f
 
 
 def get_popular_movies(db: Session, limit: int = 50, exclude_ids: List[int] = None) -> List[Movie]:
-    query = db.query(Movie).filter(Movie.vote_count >= 100)
+    # Pull a bounded candidate pool ordered by vote_count to avoid loading all 100k+ movies.
+    # Python-sort the pool by the exact formula afterwards.
+    pool_size = max(limit * 30, 2000)
+    movies = (
+        db.query(Movie)
+        .filter(Movie.vote_count >= 100)
+        .order_by(Movie.vote_count.desc())
+        .limit(pool_size)
+        .all()
+    )
+
     if exclude_ids:
-        query = query.filter(Movie.id.notin_(exclude_ids))
-    movies = query.all()
+        exclude_set = set(exclude_ids)
+        movies = [m for m in movies if m.id not in exclude_set]
 
     scored = sorted(
         movies,

@@ -21,7 +21,13 @@ def get_cold_start_recommendations(
     Cold start: mix content-based similarity (if liked_movies exist)
     with popularity ranking.
     """
-    all_movies = db.query(Movie).filter(Movie.vote_count >= 50).all()
+    all_movies = (
+        db.query(Movie)
+        .filter(Movie.vote_count >= 50)
+        .order_by(Movie.vote_count.desc())
+        .limit(3000)
+        .all()
+    )
     exclude = set(liked_movie_ids)
 
     if liked_movie_ids and content_model.is_loaded():

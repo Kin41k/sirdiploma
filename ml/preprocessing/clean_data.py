@@ -1,5 +1,4 @@
 """Clean and prepare movie data for ML pipeline."""
-import re
 import pandas as pd
 
 

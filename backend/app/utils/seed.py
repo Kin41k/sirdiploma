@@ -53,15 +53,16 @@ def parse_genres(genres_str: str) -> list[str]:
     return [g.strip() for g in genres_str.split(",") if g.strip()]
 
 
-def import_movies(db) -> list[int]:
+def import_movies(db) -> int:
+    """Returns the number of movies in the DB after import (0 if CSV missing)."""
     if not CSV_PATH.exists():
         print(f"[WARN] CSV not found at {CSV_PATH}. Skipping movie import.")
-        return []
+        return 0
 
     existing = db.query(Movie.id).count()
     if existing > 0:
         print(f"[INFO] Movies already seeded ({existing} movies). Skipping.")
-        return [row[0] for row in db.query(Movie.id).all()]
+        return existing
 
     print(f"[INFO] Importing movies from {CSV_PATH}...")
     batch, batch_size, total = [], 500, 0
@@ -99,7 +100,7 @@ def import_movies(db) -> list[int]:
             total += len(batch)
 
     print(f"\n[OK] Imported {total} movies.")
-    return [row[0] for row in db.query(Movie.id).all()]
+    return total
 
 
 def create_demo_users(db) -> list[User]:
@@ -124,13 +125,13 @@ def create_demo_users(db) -> list[User]:
     return created
 
 
-def generate_synthetic_users(db, movie_ids: list[int]) -> None:
+def generate_synthetic_users(db, movie_count: int) -> None:
     existing_synthetic = db.query(User).filter(User.username.like("synth_%")).count()
     if existing_synthetic > 0:
         print(f"[INFO] Synthetic users already exist ({existing_synthetic}). Skipping.")
         return
 
-    if not movie_ids:
+    if not movie_count:
         print("[WARN] No movies in DB, skipping synthetic user generation.")
         return
 
@@ -138,8 +139,8 @@ def generate_synthetic_users(db, movie_ids: list[int]) -> None:
     rng = random.Random(RANDOM_SEED)
     np.random.seed(RANDOM_SEED)
 
-    # Pre-load movie metadata for genre-based rating bias
-    movies = db.query(Movie).filter(Movie.id.in_(movie_ids), Movie.vote_count >= 10).all()
+    # Pre-load movie metadata for genre-based rating bias (no in_() with 156k IDs)
+    movies = db.query(Movie).filter(Movie.vote_count >= 10).all()
     movie_map = {m.id: m for m in movies}
     filtered_ids = list(movie_map.keys())
 
@@ -234,9 +235,9 @@ def generate_synthetic_users(db, movie_ids: list[int]) -> None:
 def main():
     db = SessionLocal()
     try:
-        movie_ids = import_movies(db)
+        movie_count = import_movies(db)
         create_demo_users(db)
-        generate_synthetic_users(db, movie_ids)
+        generate_synthetic_users(db, movie_count)
         print("\n[DONE] Database seeded successfully.")
         print("  Admin:  admin@cinerarec.com / admin123")
         print("  Demo:   demo@cinerarec.com  / demo123")

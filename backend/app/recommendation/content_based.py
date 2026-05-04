@@ -2,35 +2,29 @@ import os
 import pickle
 import numpy as np
 from typing import List, Tuple, Optional
-from scipy.sparse import load_npz
+from scipy.sparse import load_npz, csr_matrix
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 class ContentBasedModel:
-    """TF-IDF content-based similarity model."""
+    """TF-IDF content-based similarity model (sparse matrix — memory-safe)."""
 
     def __init__(self, models_path: str):
         self._models_path = models_path
-        self._matrix: Optional[np.ndarray] = None
-        self._vectorizer: Optional[TfidfVectorizer] = None
+        self._matrix: Optional[csr_matrix] = None   # stays sparse, never .toarray()
         self._movie_ids: Optional[List[int]] = None
         self._id_to_idx: dict = {}
         self._loaded = False
 
     def load(self) -> bool:
         matrix_path = os.path.join(self._models_path, "tfidf_matrix.npz")
-        vec_path = os.path.join(self._models_path, "tfidf_vectorizer.pkl")
         ids_path = os.path.join(self._models_path, "movie_ids.pkl")
 
-        if not all(os.path.exists(p) for p in [matrix_path, vec_path, ids_path]):
+        if not all(os.path.exists(p) for p in [matrix_path, ids_path]):
             return False
 
-        sparse = load_npz(matrix_path)
-        self._matrix = sparse.toarray()
+        self._matrix = load_npz(matrix_path)  # sparse CSR — keep it sparse!
 
-        with open(vec_path, "rb") as f:
-            self._vectorizer = pickle.load(f)
         with open(ids_path, "rb") as f:
             self._movie_ids = pickle.load(f)
 
@@ -42,33 +36,31 @@ class ContentBasedModel:
         return self._loaded
 
     def get_similar(self, movie_id: int, n: int = 10) -> List[Tuple[int, float]]:
-        """Return list of (movie_id, score) sorted by similarity."""
         if not self._loaded or movie_id not in self._id_to_idx:
             return []
         idx = self._id_to_idx[movie_id]
-        vec = self._matrix[idx].reshape(1, -1)
-        sims = cosine_similarity(vec, self._matrix)[0]
-        sims[idx] = -1  # exclude self
+        vec = self._matrix[idx]                          # sparse row
+        sims = cosine_similarity(vec, self._matrix).flatten()
+        sims[idx] = -1.0                                 # exclude self
         top_indices = np.argsort(sims)[::-1][:n]
         return [(self._movie_ids[i], float(sims[i])) for i in top_indices]
 
-    def score_for_user(self, liked_movie_ids: List[int], candidate_ids: List[int]) -> dict[int, float]:
-        """Compute content score for candidates based on user's liked movies."""
+    def score_for_user(self, liked_movie_ids: List[int], candidate_ids: List[int]) -> dict:
         if not self._loaded or not liked_movie_ids:
             return {}
 
-        liked_indices = [self._id_to_idx[mid] for mid in liked_movie_ids if mid in self._id_to_idx]
-        if not liked_indices:
+        liked_idx = [self._id_to_idx[mid] for mid in liked_movie_ids if mid in self._id_to_idx]
+        if not liked_idx:
             return {}
 
-        user_profile = self._matrix[liked_indices].mean(axis=0).reshape(1, -1)
+        # Mean of liked-movie vectors (result is a dense (1, n_features) matrix)
+        profile = self._matrix[liked_idx].mean(axis=0)
 
-        # Build aligned lists to preserve order and avoid O(n²) lookup
         valid_mids = [mid for mid in candidate_ids if mid in self._id_to_idx]
         if not valid_mids:
             return {}
 
-        valid_indices = [self._id_to_idx[mid] for mid in valid_mids]
-        sims = cosine_similarity(user_profile, self._matrix[valid_indices])[0]
+        valid_idx = [self._id_to_idx[mid] for mid in valid_mids]
+        sims = cosine_similarity(profile, self._matrix[valid_idx]).flatten()
 
         return {mid: float(sim) for mid, sim in zip(valid_mids, sims)}
