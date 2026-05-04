@@ -43,15 +43,13 @@ cd %USERPROFILE%\Desktop
 
 Затем скачай проект:
 ```
-git clone https://github.com/ССЫЛКА_НА_РЕПОЗИТОРИЙ.git
+git clone https://github.com/Kin41k/sirdiploma.git
 ```
 
 Перейди в папку проекта:
 ```
-cd cinerarec
+cd sirdiploma
 ```
-
-> Вместо `cinerarec` напиши реальное название папки, которая создалась.
 
 ---
 
@@ -74,7 +72,7 @@ copy frontend\.env.local.example frontend\.env.local
 
 Перейди в папку backend:
 ```
-cd %USERPROFILE%\Desktop\cinerarec\backend
+cd %USERPROFILE%\Desktop\sirdiploma\backend
 ```
 
 Создай виртуальное окружение (изолированная папка для библиотек, чтобы не засорять систему):
@@ -142,7 +140,7 @@ python main.py
 
 Перейди в папку frontend:
 ```
-cd %USERPROFILE%\Desktop\cinerarec\frontend
+cd %USERPROFILE%\Desktop\sirdiploma\frontend
 ```
 
 Установи пакеты:
@@ -159,7 +157,7 @@ npm install
 
 **Окно 1 — Бэкенд** (вернись в первое окно):
 ```
-cd %USERPROFILE%\Desktop\cinerarec\backend
+cd %USERPROFILE%\Desktop\sirdiploma\backend
 venv\Scripts\activate
 uvicorn app.main:app --reload --port 8000
 ```
@@ -167,7 +165,7 @@ uvicorn app.main:app --reload --port 8000
 
 **Окно 2 — Фронтенд** (второе окно):
 ```
-cd %USERPROFILE%\Desktop\cinerarec\frontend
+cd %USERPROFILE%\Desktop\sirdiploma\frontend
 npm run dev
 ```
 > Должно написать `Ready - started server on http://localhost:3000` и зависнуть — это нормально.
@@ -190,8 +188,8 @@ http://localhost:3000
 
 | Роль | Email | Пароль |
 |------|-------|--------|
-| Администратор | admin@cinerarec.com | admin123 |
-| Обычный пользователь | demo@cinerarec.com | demo123 |
+| Администратор | admin@sirdiploma.com | admin123 |
+| Обычный пользователь | demo@sirdiploma.com | demo123 |
 
 ---
 
@@ -205,14 +203,14 @@ http://localhost:3000
 
 **Окно 1:**
 ```
-cd %USERPROFILE%\Desktop\cinerarec\backend
+cd %USERPROFILE%\Desktop\sirdiploma\backend
 venv\Scripts\activate
 uvicorn app.main:app --reload --port 8000
 ```
 
 **Окно 2:**
 ```
-cd %USERPROFILE%\Desktop\cinerarec\frontend
+cd %USERPROFILE%\Desktop\sirdiploma\frontend
 npm run dev
 ```
 
