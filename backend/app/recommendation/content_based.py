@@ -62,15 +62,13 @@ class ContentBasedModel:
             return {}
 
         user_profile = self._matrix[liked_indices].mean(axis=0).reshape(1, -1)
-        candidate_indices = [self._id_to_idx[mid] for mid in candidate_ids if mid in self._id_to_idx]
-        if not candidate_indices:
+
+        # Build aligned lists to preserve order and avoid O(n²) lookup
+        valid_mids = [mid for mid in candidate_ids if mid in self._id_to_idx]
+        if not valid_mids:
             return {}
 
-        candidate_matrix = self._matrix[candidate_indices]
-        sims = cosine_similarity(user_profile, candidate_matrix)[0]
+        valid_indices = [self._id_to_idx[mid] for mid in valid_mids]
+        sims = cosine_similarity(user_profile, self._matrix[valid_indices])[0]
 
-        result = {}
-        for i, mid in enumerate(candidate_ids):
-            if mid in self._id_to_idx:
-                result[mid] = float(sims[candidate_indices.index(self._id_to_idx[mid])])
-        return result
+        return {mid: float(sim) for mid, sim in zip(valid_mids, sims)}

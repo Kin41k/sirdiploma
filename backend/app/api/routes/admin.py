@@ -38,10 +38,11 @@ def list_users(
 @router.get("/metrics", response_model=ModelMetrics)
 def model_metrics(_: User = Depends(get_current_admin)):
     """Returns evaluation metrics from the last ML training run."""
-    import os, json
-    metrics_path = os.path.join(os.path.dirname(__file__), "../../../../ml/models/metrics.json")
-    if os.path.exists(metrics_path):
+    import json
+    from pathlib import Path
+    metrics_path = Path(__file__).resolve().parents[4] / "ml" / "models" / "metrics.json"
+    if metrics_path.exists():
         with open(metrics_path) as f:
             data = json.load(f)
-        return ModelMetrics(**data)
+        return ModelMetrics(**{k: v for k, v in data.items() if v is not None or k == "rmse"})
     return ModelMetrics(precision_at_10=0.0, recall_at_10=0.0, ndcg_at_10=0.0)
